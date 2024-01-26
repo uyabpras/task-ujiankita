@@ -5,9 +5,10 @@ const swaggerSpec = require('./swagger');
 const swaggerUi = require('swagger-ui-express');
 const app = express();
 const taskRoute = require('./routes/routing');
+const { runConsumer } = require('./config/kafka'); 
 
 app.use(express.json());
-const port = 5000;
+const port = 3099;
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -32,3 +33,4 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Example app listening on port localhost:${port}/api-docs`);
 })
+runConsumer().catch(e => console.error(`[Consumer] ${e.message}`, e));

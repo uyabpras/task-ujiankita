@@ -1,3 +1,5 @@
+const { task } = require("../db/connect");
+
 module.exports = (sequelize, DataTypes) => {
     const Task = sequelize.define('Task',{
         id: {
@@ -7,10 +9,6 @@ module.exports = (sequelize, DataTypes) => {
           },
           userID: {
             type: DataTypes.INTEGER,
-            allowNull: false,
-          },
-          name: {
-            type: DataTypes.STRING,
             allowNull: false,
           },
           typeTask: {
@@ -26,8 +24,9 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true
           },
           status: {
-            type: DataTypes.BOOLEAN,
+            type: DataTypes.STRING,
             defaultValue: true,
           }
-    })
+    });
+    return Task
 };
