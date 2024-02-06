@@ -5,7 +5,7 @@ const router = express.Router();
 router.get('/', taskController.list);
 router.get('/:id', taskController.get);
 router.get('/health', taskController.getHealth);
-router.post('/create', taskController.add);
+router.post('/create', taskController.create);
 //router.post('/api/add-task', taskController.addTask);
 router.put('/:id', taskController.editTask);
 router.put('/status', taskController.editStatusBulk);

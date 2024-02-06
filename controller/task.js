@@ -5,7 +5,7 @@ const Op = db.Sequelize.Op;
 
 exports.list = async (req, res) => {
     try {
-        const page = req.query.page;
+        const page = req.query.page|| 1;
         const limit = parseInt(req.query.limit)|| 10;
         const offset = page * limit - limit;
         const whereClause = {};
@@ -18,7 +18,17 @@ exports.list = async (req, res) => {
             whereClause.status = req.query.status;
         }
 
-        const result = await taskDB.findAndCount({
+        if(req.query.userID){
+            whereClause.userID = req.query.userID;
+        }
+
+        if (req.query.search_dataID && req.query.data) {
+            const dynamicProperytName = `dataID.${req.query.search_dataID}`;
+            whereClause[dynamicProperytName] = req.query.data;
+        }
+
+        console.log(whereClause);
+        const result = await taskDB.findAndCountAll({
             where: whereClause,
             order: [["createdAt", req.query.order || "ASC"]],
             limit: limit,
@@ -69,7 +79,7 @@ exports.get = async (req, res) => {
 };
 
 //using http.request
-exports.add = async (req, res) => {
+exports.create = async (req, res) => {
     try {
         console.log(JSON.stringify(req.body, null, 2));
         const addTask = {
@@ -177,22 +187,74 @@ exports.delete = async(req,res)=>{
 };
 exports.editStatusBulk = async(req,res)=> {
     try {
-        const result = await Task.update(
-            { status: req.body.status },
+        // const existingData = await Task.findOne({
+        //     where: {
+        //         id: {
+        //             [Op.in]: req.body.id,
+        //         },
+        //     },
+        // });
+        
+        // if (existingData) {
+        //     // Mengambil data lama dari dataID
+        //     const oldDataID = JSON.parse(existingData.dataID);
+        
+        //     // Memindahkan data lama ke dataBak
+        //     await Task.update(
+        //         {
+        //             dataBak: JSON.stringify(oldDataID),
+        //         },
+        //         {
+        //             where: {
+        //                 id: {
+        //                     [Op.in]: req.body.id,
+        //                 },
+        //             },
+        //         }
+        //     );
+        
+        //     // Memperbarui dataID.desc dengan nilai baru
+        //     const result = await Task.update(
+        //         {
+        //             status: req.body.status,
+        //             dataID: {
+        //                 desc: `update status data: ${req.body.status}`,
+        //             },
+        //         },
+        //         {
+        //             where: {
+        //                 id: {
+        //                     [Op.in]: req.body.id,
+        //                 },
+        //             },
+        //         }
+        //     );
+        
+        /* req.body.data
             {
-              where: {
-                typeTask: req.body.typeTask,
-                [Op.or]: [
-                  { userId: req.body.userId }, // Jika identifier adalah userId, cocokkan berdasarkan userId
-                  { id: {
-                            [Op.in]: req.body.id 
-                        }
-                    }, // Jika identifier adalah id, cocokkan berdasarkan id
-          
-                ],
-              },
+                "id": [1, 2, 3],
+                "status": "active"|| "pending"|| "deactive"
             }
-          );
+         */
+        
+            const result = await Task.update(
+                {
+                    userID: req.boody.token.id,
+                    status: req.body.data.status,
+                    // Data untuk memperbarui kolom dataID
+                    databak: dataID,
+                    dataID: {
+                        desc: `update status data: ${req.body.data.status}`,
+                    },
+                },
+                {
+                    where: {
+                        id: {
+                            [Op.in]: req.body.data.id,
+                        },
+                    },
+                }
+            ); 
 
           if (result[0] === 0) {
             return res.status(404).json({
@@ -242,6 +304,63 @@ exports.addTask = async (payload) => {
       return { success: false, message: 'Error creating task' };
     }
   };
+
+  exports.updateTask = async (payload) => { 
+    try {
+        const find = await taskDB.findAll({
+            where: {
+                typeTask: payload.typeTask
+            }
+        })
+        if(!find){
+            res.status(404).send({
+                success: false,
+                message: "task not found by " + payload.typeTask,
+                err: Error,
+            });
+        }else{
+            if(payload.data.desc === 'delete'){
+                    const result = await taskDB.destroy({where: {id: find.id}})
+                    res.status(200).json({
+                    success: true,
+                    data: result,
+                    message: "Successfully Deleted the task by id: " + find.id.id,
+                    });
+                
+            }else{
+                const updateTask = {
+                    userID: payload.userID,
+                    typeTask: payload.typeTask,
+                    dataID: payload.dataID,
+                    status: payload.status || "pending",
+                }
+                const updatedTask = taskDB.update(updateTask,{
+                    where:{
+                        id: find.id
+                        }
+                    });
+                if(!updatedTask){
+                    res.status(400).send({ 
+                        success: false,
+                        data: updatedModul,
+                        message: "update task is failed by " + payload.typeTask,
+                        error: err
+                    });
+                };
+
+                res.status(200).send({
+                    success: true,
+                    data: updatedTask,
+                    message: "successfully updated data by " + payload.typeTask
+                });
+            }
+        };
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || "error connect service"
+        }); 
+    }
+};
 
   exports.getHealth = async(req, res) => {
     const data = {

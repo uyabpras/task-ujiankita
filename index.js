@@ -5,7 +5,7 @@ const swaggerSpec = require('./swagger');
 const swaggerUi = require('swagger-ui-express');
 const app = express();
 const taskRoute = require('./routes/routing');
-const { runConsumer } = require('./config/kafka'); 
+const { createTask, updateTask } = require('./config/kafka'); 
 
 app.use(express.json());
 const port = 3099;
@@ -25,12 +25,15 @@ db.sequelize.sync({alter: true})
     console.log("Failed to sync db: " + err.message);
   });
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
-// require('./routes/routing')(app)
-
 app.listen(port, () => {
   console.log(`Example app listening on port localhost:${port}/api-docs`);
 })
-runConsumer().catch(e => console.error(`[Consumer] ${e.message}`, e));
+
+// Jalankan produsen Kafka
+Promise.all([createTask(), updateTask()])
+  .then(() => {
+    console.log('All Kafka producers connected and sent messages.');
+  })
+  .catch((error) => {
+    console.error('Error connecting to Kafka:', error);
+  });

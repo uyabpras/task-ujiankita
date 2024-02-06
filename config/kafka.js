@@ -9,7 +9,7 @@ const kafka = new Kafka({
 
 const consumer = kafka.consumer({ groupId: 'task-service' });
 
-exports.runConsumer = async () => {
+exports.createTask = async () => {
   try {
     await consumer.connect();
     await consumer.subscribe({ topic: 'create-task' });
@@ -28,6 +28,27 @@ exports.runConsumer = async () => {
     console.error('[Consumer] Error connecting to Kafka:', error);
   }
 };
+
+exports.updateTask = async () => {
+  try {
+    await consumer.connect();
+    await consumer.subscribe({ topic: 'update-task' });
+
+    await consumer.run({
+      eachMessage: async ({ topic, partition, message }) => {
+        try {
+          const payload = JSON.parse(message.value.toString());
+          await taskController.updateTask(payload);
+        } catch (error) {
+          console.error('[Consumer] Error processing message:', error);
+        }
+      },
+    });
+  } catch (error) {
+    console.error('[Consumer] Error connecting to Kafka:', error);
+  }
+};
+
 
 // Handle SIGTERM signal to gracefully close the consumer on process termination
 process.on('SIGTERM', async () => {
